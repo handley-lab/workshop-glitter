@@ -40,7 +40,9 @@ live = jax.jit(algo.init)(particles)
 step_fn = jax.jit(algo.step)
 
 dead = []
-while not live.logZ_live - live.logZ < -3:
+# NOTE: the skill says live.logZ_live but the actual installed version
+# (v0.1.0-beta dev) has these on live.integrator
+while not live.integrator.logZ_live - live.integrator.logZ < -3:
     rng_key, subkey = jax.random.split(rng_key)
     live, dead_info = step_fn(subkey, live)
     dead.append(dead_info)
@@ -49,10 +51,16 @@ dead = blackjax.ns.utils.finalise(live, dead)
 ```
 
 ### anesthetic
-For posterior visualisation:
+For posterior visualisation. Note: the new blackjax API (post-refactor) puts
+loglikelihood inside `dead.particles` (a `StateWithLogLikelihood` namedtuple):
 ```python
 from anesthetic import NestedSamples
-samples = NestedSamples(dead.particles, logL=dead.loglikelihood, logL_birth=dead.loglikelihood_birth, labels=labels)
+samples = NestedSamples(
+    dead.particles.position,           # dict of parameter arrays
+    logL=dead.particles.loglikelihood,
+    logL_birth=dead.particles.loglikelihood_birth,
+    labels=labels,
+)
 samples.plot_2d(axes)
 ```
 
