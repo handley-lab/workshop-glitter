@@ -178,6 +178,69 @@ particles = {
 - `../workshop-blackjax-nested-sampling/workshop_nested_sampling.py` -- form factor reference (py2nb style), but uses OUTDATED blackjax API
 - `../workshop-monte-carlo-methods/workshop.py` -- exercise/answer style with `%load solutions/` pattern
 
+## Reference Talks for Slide Assembly
+
+All in `context/talks_<branch>/will_handley.tex` (not committed). These are previous talks by Will Handley that contain reusable slide content:
+
+### `sed_2025` -- "A Statistician's Guide to the Galaxy Fitting Zoo" (8 Jul 2025)
+**Most directly relevant.** Bayesian inference intro for non-statisticians (SED fitters). Covers:
+- Bayes' theorem (prior, likelihood, posterior, evidence)
+- Progressive journey: optimization → MCMC → ensemble → nested sampling
+- Each method demonstrated on Himmelblau function
+- Evidence calculation and model comparison
+- Practical guidance on choosing methods
+**Use for**: Part 1 (inverse problems & Bayesian inference) and Part 3 (nested sampling)
+
+### `imperial_2026` -- "Two Revolutions: GPUs for Science, AI for Scientists" (2026)
+Covers both GPU acceleration of classical methods AND LLM-augmented research workflows.
+- GPU nested sampling: 100-1000x speedups
+- AI tools: autocomplete → chat → agentic systems
+- Live demo of Claude Code building supplementary slides
+**Use for**: Part 2 (AI-augmented workflows) and Part 3 (nested sampling)
+
+### `ioa_2026` -- "The New Scientific Method" (Feb 2026, IoA Colloquium)
+The flagship version of the "two revolutions" narrative.
+- Classical methods on GPUs matching/outperforming neural approaches
+- LLMs transforming how researchers work
+- Real results: DESI dark energy, GW follow-up, 21cm, supernovae
+- "Rigorous analysis made routine + LLM-assisted development = new scientific method"
+**Use for**: Part 2 framing and overall narrative arc. Has YouTube recording.
+
+### `bristol_2025` -- "GPU-native nested sampling in BlackJAX" (29 May 2025)
+The workshop talk that preceded the BlackJAX hands-on session.
+- What is nested sampling? (optimization, exploration, integration)
+- Why nested sampling for SBI? (most methods need a sampler)
+- The GPU imperative (JAX = autodiff + JIT)
+- BlackJAX nested sampling intro
+- Workshop goals and handoff to notebook
+**Use for**: Part 3 structure and workshop handoff pattern
+
+### `ini_2025` -- "GPU Accelerated Nested Sampling" (27 Jun 2025, INI Cambridge)
+Technical nested sampling talk with concrete performance results.
+- GW170817 case study
+- MCMC vs nested sampling comparison (animated Himmelblau)
+- Live points and dead points algorithm explanation
+- Performance: BlackJAX GPU-NS 207s vs Bilby/Dynesty 2hrs on 400 CPUs
+- CMB: PolyChord 1hr → BlackJAX 12s (300x speedup)
+**Use for**: Part 3 performance claims and concrete examples
+
+### `birmingham_2025` -- "GPU Accelerated Bayesian Inference for Astronomy" (2025)
+Comprehensive talk covering GPU acceleration of classical statistical methods.
+- JAX/PyTorch: two independent capabilities (autodiff AND GPU parallelisation)
+- BlackJAX across algorithms: gradient descent through nested sampling
+- Applications: CMB (300x), cosmic shear, Type Ia supernovae, DESI dark energy, GW (20-40x)
+- AI coding assistants changing scientific software development
+- Classical algorithms + GPU + AI vs purely ML approaches
+**Use for**: Part 3 performance narrative and the "two capabilities" framing of JAX
+
+## Slide Assembly Strategy
+
+The GLITTER talk should be assembled by adapting content from these talks, NOT by writing slides from scratch. The key adaptations needed:
+1. **SED → GNSS-R**: Replace galaxy SED fitting framing with satellite orbit determination / GNSS reflectometry
+2. **Audience calibration**: These PhD students are engineers, not astronomers. Use "inverse problem" not "posterior inference" as the entry point.
+3. **AI section earlier**: Unlike the other talks where AI is at the end, here it comes as Part 2 to normalise AI usage before the hands-on session.
+4. **Workshop handoff**: Part 3 should end with a clear bridge to the notebook session, following the Bristol pattern.
+
 ## Anti-patterns
 
 - Do NOT use the old `blackjax.nested_sampling` API or `@nested_sampling` branch
