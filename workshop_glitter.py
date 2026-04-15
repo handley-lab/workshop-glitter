@@ -14,7 +14,7 @@
 #| You must install from the correct tag:
 
 #! pip install "blackjax @ git+https://github.com/handley-lab/blackjax.git"
-#! pip install jaxsgp4 anesthetic fgivenx tqdm matplotlib
+#! pip install "jaxsgp4 @ git+https://github.com/cmpriestley/jaxsgp4.git" anesthetic fgivenx tqdm matplotlib
 
 #| ## Part 1: Bayesian Inference via Line Fitting
 #|

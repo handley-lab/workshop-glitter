@@ -44,7 +44,7 @@ If not using Colab:
 
 ```bash
 pip install "blackjax @ git+https://github.com/handley-lab/blackjax.git"
-pip install jaxsgp4 anesthetic fgivenx tqdm matplotlib
+pip install "jaxsgp4 @ git+https://github.com/cmpriestley/jaxsgp4.git" anesthetic fgivenx tqdm matplotlib
 ```
 
 Then open `workshop_glitter.ipynb` in Jupyter.
