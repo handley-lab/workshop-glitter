@@ -127,17 +127,15 @@ def itrs_to_altaz_mat(lon_rad, lat_rad):
 def cartesian_to_altaz(xyz):
     """AltAz Cartesian -> (azimuth, altitude) in radians.
 
-    After the minus_x flip in itrs_to_altaz_mat, the axes are:
-      x -> -North, y -> East, z -> Up (left-handed).
-    Azimuth is measured North through East, so az = atan2(East, -(-North)) = atan2(y, -x).
-    But minus_x already flipped x, so in the output frame: atan2(x, y) gives North-through-East.
-
-    Azimuth normalised to [0, 2pi) to match astropy convention.
+    After itrs_to_altaz_mat, the components are:
+      x = North, y = East, z = Up.
+    Azimuth is measured North through East: az = atan2(East, North) = atan2(y, x).
+    Normalised to [0, 2pi) to match astropy convention.
     """
     x, y, z = xyz[0], xyz[1], xyz[2]
     hyp = jnp.sqrt(x * x + y * y)
     alt = jnp.arctan2(z, hyp)
-    az = jnp.mod(jnp.arctan2(x, y), 2 * jnp.pi)
+    az = jnp.mod(jnp.arctan2(y, x), 2 * jnp.pi)
     return az, alt
 
 
