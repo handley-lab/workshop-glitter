@@ -181,23 +181,31 @@ plt.suptitle('Parameter space: $y = a + bx$');
 #| But we often care about predictions, not parameters. We can project the
 #| posterior into **data space** by running each posterior sample through the
 #| forward model. This is the predictive posterior $P(y|x, D)$.
+#|
+#| `fgivenx` computes this properly: for each $x$, it builds the full
+#| distribution $P(y|x) = \int P(y|x,\theta) P(\theta|D) d\theta$
+#| and plots it as filled contours showing 1- and 2-sigma regions.
 
-fig, ax = plt.subplots()
-ax.errorbar(x, y, yerr=sigma, fmt='.', color='k', capthick=0.1, markersize=0, linewidth=0.1)
+from fgivenx import plot_contours
+
+def linear_model(x_val, theta):
+    return theta[0] + theta[1] * x_val
 
 x_plot = np.linspace(0, 1, 200)
-posterior = samples_linear.sample(200)
-for _, row in posterior.iterrows():
-    ax.plot(x_plot, row['c0'] + row['c1'] * x_plot, 'C0-', alpha=0.02, linewidth=0.5)
+theta_samples = samples_linear.sample(500)[['c0', 'c1']].to_numpy()
 
+fig, ax = plt.subplots()
+cbar = plot_contours(linear_model, x_plot, theta_samples, ax=ax)
+ax.errorbar(x, y, yerr=sigma, fmt='.', color='k', capthick=0.1, markersize=0, linewidth=0.1)
 ax.set_xlabel('$x$')
 ax.set_ylabel('$y$')
-ax.set_title('Data space: predictive posterior $P(y|x, D)$');
+ax.set_title('Data space: predictive posterior $P(y|x, D)$')
+plt.colorbar(cbar, label='posterior mass');
 
-#| This is sampling in action: each line is one posterior sample propagated
-#| through the forward model. The envelope of lines shows our uncertainty
-#| about the prediction — proper error bars on the model, not just the
-#| parameters.
+#| The colours show the posterior probability mass in data space.
+#| This is sampling in action: each posterior sample is propagated through the
+#| forward model, and the envelope shows our uncertainty about the prediction —
+#| proper error bars on the model, not just the parameters.
 
 #| ### 1.8 Model comparison
 #|
