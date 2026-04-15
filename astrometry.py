@@ -252,10 +252,11 @@ def observe_apparent(r_teme, R_teme_to_itrs, R_itrs_to_cirs, R_cirs_to_gcrs,
     r_gcrs_geo = (R_cirs_to_gcrs @ r_cirs_geo) / _DAU  # au
 
     # 4. GCRS(geocentric) -> ICRS (all in au)
+    #    Extract angles directly from the full vector (no explicit normalisation,
+    #    matching astropy's SphericalRepresentation conversion)
     dist_geo = jnp.linalg.norm(r_gcrs_geo)
-    u_gcrs_geo = r_gcrs_geo / dist_geo
-    ra_gcrs = jnp.arctan2(u_gcrs_geo[1], u_gcrs_geo[0])
-    dec_gcrs = jnp.arctan2(u_gcrs_geo[2], jnp.sqrt(u_gcrs_geo[0]**2 + u_gcrs_geo[1]**2))
+    ra_gcrs = jnp.arctan2(r_gcrs_geo[1], r_gcrs_geo[0])
+    dec_gcrs = jnp.arctan2(r_gcrs_geo[2], jnp.sqrt(r_gcrs_geo[0]**2 + r_gcrs_geo[1]**2))
 
     ra_icrs, dec_icrs = aticq(ra_gcrs, dec_gcrs, v_geo, em_geo, eh_geo, bm1_geo, bpn_geo)
 
@@ -265,12 +266,11 @@ def observe_apparent(r_teme, R_teme_to_itrs, R_itrs_to_cirs, R_cirs_to_gcrs,
     r_icrs = dist_geo * u_icrs + eb_geo  # au
 
     # 5. ICRS -> GCRS(station) (all in au)
+    #    Subtract station eb first (astropy does this before spherical conversion)
     r_rel = r_icrs - eb_site
     dist_site = jnp.linalg.norm(r_rel)
-    u_rel = r_rel / dist_site
-
-    ra_rel = jnp.arctan2(u_rel[1], u_rel[0])
-    dec_rel = jnp.arctan2(u_rel[2], jnp.sqrt(u_rel[0]**2 + u_rel[1]**2))
+    ra_rel = jnp.arctan2(r_rel[1], r_rel[0])
+    dec_rel = jnp.arctan2(r_rel[2], jnp.sqrt(r_rel[0]**2 + r_rel[1]**2))
 
     ra_gcrs_site, dec_gcrs_site = atciqz(ra_rel, dec_rel, v_site, em_site, eh_site, bm1_site, bpn_site)
 
