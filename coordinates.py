@@ -6,7 +6,10 @@ Ported from astropy's coordinate transform pipeline:
   EarthLocation.from_geodetic (earth.py, using erfa.gd2gc)
 
 All functions operate on JAX arrays and are jit/vmap/grad compatible.
-No refraction or polar motion corrections.
+No refraction correction.
+
+Time arguments are UT1 Julian Date (two-part for numerical precision),
+matching ERFA convention. Use utc_to_ut1_jd() to convert from UTC + DUT1.
 """
 
 import jax.numpy as jnp
@@ -23,11 +26,19 @@ _DAYSEC = 86400.0  # seconds per day
 _DS2R = 7.272205216643039903848712e-5  # seconds of time to radians
 
 
-def gmst82(dj1, dj2):
+def utc_to_ut1_jd(utc_jd1, utc_jd2, dut1_sec):
+    """Convert UTC Julian Date to UT1 Julian Date.
+
+    UT1 = UTC + DUT1 (where DUT1 is from IERS bulletins, typically |DUT1| < 0.9s).
+    """
+    return utc_jd1, utc_jd2 + dut1_sec / _DAYSEC
+
+
+def gmst82(ut1_jd1, ut1_jd2):
     """Greenwich Mean Sidereal Time (IAU 1982 model).
 
     Literal port of ERFA eraGmst82 (gmst82.c).
-    Takes UT1 Julian Date as two-part (dj1 + dj2).
+    Takes UT1 Julian Date as two-part (ut1_jd1 + ut1_jd2).
     Returns GMST in radians, normalised to [0, 2pi).
     """
     # IAU 1982 GMST-UT1 coefficients (seconds of time)
@@ -38,8 +49,8 @@ def gmst82(dj1, dj2):
     D = -6.2e-6
 
     # ERFA sorts so d1 <= d2 for numerical precision
-    d1 = jnp.where(dj1 < dj2, dj1, dj2)
-    d2 = jnp.where(dj1 < dj2, dj2, dj1)
+    d1 = jnp.where(ut1_jd1 < ut1_jd2, ut1_jd1, ut1_jd2)
+    d2 = jnp.where(ut1_jd1 < ut1_jd2, ut1_jd2, ut1_jd1)
 
     # Julian centuries since J2000.0
     t = (d1 + (d2 - _DJ00)) / _DJC
@@ -86,14 +97,42 @@ def rotation_z(angle):
     return _rotation_matrix(2, angle)
 
 
-def teme_to_itrs(r_teme, dj1, dj2):
-    """TEME -> ITRS rotation (no polar motion).
+def pom00(xp, yp, sp=0.0):
+    """Polar motion matrix (IAU 2000).
 
-    Port of astropy teme_to_itrs_mat, without polar motion.
-    Polar motion is sub-arcsecond and negligible for this application.
+    Port of erfa.pom00 (pom00.c): Rz(sp) @ Ry(-xp) @ Rx(-yp).
+    xp, yp in radians. sp (TIO locator) set to 0 for TEME consistency
+    with Vallado (2006).
     """
-    gst = gmst82(dj1, dj2)
-    return rotation_z(gst) @ r_teme
+    return rotation_z(sp) @ rotation_y(-xp) @ rotation_x(-yp)
+
+
+def c2tcio(rc2i, era, rpom):
+    """Celestial-to-terrestrial matrix from CIO components.
+
+    Port of erfa.c2tcio (c2tcio.c): rpom @ Rz(era) @ rc2i.
+    For TEME, rc2i is the identity matrix.
+    """
+    return rpom @ rotation_z(era) @ rc2i
+
+
+def teme_to_itrs(r_teme, ut1_jd1, ut1_jd2, xp=0.0, yp=0.0):
+    """TEME -> ITRS rotation.
+
+    Port of astropy teme_to_itrs_mat.
+
+    Parameters
+    ----------
+    r_teme : array (3,)
+        Position in TEME frame (km).
+    ut1_jd1, ut1_jd2 : float
+        UT1 Julian Date (two-part). Use utc_to_ut1_jd() to convert from UTC.
+    xp, yp : float
+        Polar motion parameters (radians, from IERS tables). Default 0.
+    """
+    gst = gmst82(ut1_jd1, ut1_jd2)
+    pmmat = pom00(xp, yp, 0.0)
+    return c2tcio(jnp.eye(3), gst, pmmat) @ r_teme
 
 
 def geodetic_to_ecef(lon_rad, lat_rad, height_km):
@@ -152,12 +191,29 @@ def epoch_to_jd(epochyr, epochdays):
     return jd_jan1 + epochdays
 
 
-def observe(r_teme, dj1, dj2, station_lon_rad, station_lat_rad, station_height_km=0.0):
+def observe(r_teme, ut1_jd1, ut1_jd2, station_lon_rad, station_lat_rad,
+            station_height_km=0.0, xp=0.0, yp=0.0):
     """Full pipeline: TEME position -> (azimuth, altitude) from ground station.
 
-    Returns azimuth and altitude in radians.
+    Parameters
+    ----------
+    r_teme : array (3,)
+        Satellite TEME position (km).
+    ut1_jd1, ut1_jd2 : float
+        UT1 Julian Date (two-part). Use utc_to_ut1_jd() to convert from UTC.
+    station_lon_rad, station_lat_rad : float
+        Station geodetic coordinates (radians).
+    station_height_km : float
+        Station height above ellipsoid (km).
+    xp, yp : float
+        Polar motion (radians, from IERS tables). Default 0.
+
+    Returns
+    -------
+    az, alt : float
+        Azimuth and altitude (radians).
     """
-    r_itrs = teme_to_itrs(r_teme, dj1, dj2)
+    r_itrs = teme_to_itrs(r_teme, ut1_jd1, ut1_jd2, xp, yp)
     r_station = geodetic_to_ecef(station_lon_rad, station_lat_rad, station_height_km)
     dr = r_itrs - r_station
     xyz_altaz = itrs_to_altaz_mat(station_lon_rad, station_lat_rad) @ dr
