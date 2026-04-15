@@ -68,7 +68,26 @@ ax.set_title('Noisy data');
 #| This is your **likelihood function** — the probability of observing the data
 #| given specific parameter values. Now we can do proper Bayesian inference.
 
-#| ### 1.4 Set up the Bayesian problem
+#| ### 1.4 Why sampling?
+#|
+#| Why not just evaluate the posterior on a grid? In 2D with 100 grid points
+#| per dimension, that's $100^2 = 10{,}000$ evaluations. In 15D (like the
+#| gravitational wave problem from the talk), it's $100^{15} = 10^{30}$.
+#| Grids are hopeless in high dimensions.
+#|
+#| **Samples** solve this. If you can generate $N$ representative draws
+#| $\theta_i \sim P(\theta|D)$, then:
+#|
+#| - **Error bars**: just compute the spread of $\theta_i$
+#| - **Propagation**: want to know how $f(\theta)$ is distributed?
+#|   Just compute $f(\theta_i)$ for each sample. Sampling turns uncertainty
+#|   quantification into repeated forward models.
+#| - **Marginals for free**: want $P(\theta_1)$ ignoring all other parameters?
+#|   Just ignore the other columns.
+#| - **The golden rule**: stay in samples until the last moment, because
+#|   $f(\langle \theta \rangle) \ne \langle f(\theta) \rangle$.
+
+#| ### 1.5 Set up the Bayesian problem
 #|
 #| We'll fit polynomials of different orders to the data.
 #| For a polynomial $y = a + bx$, we have parameters $\theta = (a, b)$.
