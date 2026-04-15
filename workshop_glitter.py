@@ -14,7 +14,7 @@
 #| You must install from the correct tag:
 
 #! pip install "blackjax @ git+https://github.com/handley-lab/blackjax.git"
-#! pip install "jaxsgp4 @ git+https://github.com/cmpriestley/jaxsgp4.git" anesthetic fgivenx tqdm matplotlib
+#! pip install "jaxsgp4 @ git+https://github.com/cmpriestley/jaxsgp4.git" anesthetic "fgivenx @ git+https://github.com/handley-lab/fgivenx.git" tqdm matplotlib
 
 #| ## Part 1: Bayesian Inference via Line Fitting
 #|
@@ -229,14 +229,19 @@ for label, powers in models.items():
 
 #-
 labels = list(results.keys())
-logZs = np.array([float(results[l].logZ()) for l in labels])
-logZs -= logZs.max()
+
+# Draw 100 samples of logZ for each model to get error bars
+nsamples = 100
+logZ_samples = np.array([results[l].logZ(nsamples) for l in labels])  # (n_models, nsamples)
+logZ_mean = logZ_samples.mean(axis=1)
+logZ_std = logZ_samples.std(axis=1)
+logZ_mean -= logZ_mean.max()
 
 fig, ax = plt.subplots(figsize=(8, 4))
-ax.bar(range(len(labels)), np.exp(logZs - np.max(logZs)))
+ax.bar(range(len(labels)), logZ_mean, yerr=logZ_std, capsize=3)
 ax.set_xticks(range(len(labels)))
 ax.set_xticklabels(labels, rotation=45, ha='right')
-ax.set_ylabel('Betting odds')
+ax.set_ylabel(r'$\log \mathcal{Z} - \log \mathcal{Z}_\mathrm{max}$')
 ax.set_title('Model comparison: which polynomial fits best?')
 fig.tight_layout();
 
@@ -398,7 +403,8 @@ samples_2d = NestedSamples(
     labels={"i0": r"$i_0$ (deg)", "Omega0": r"$\Omega_0$ (deg)"},
 )
 
-print(f"log Z = {samples_2d.logZ():.1f}")
+logZ_2d = samples_2d.logZ(100)
+print(f"log Z = {np.mean(logZ_2d):.1f} ± {np.std(logZ_2d):.1f}")
 
 #-
 # Corner plot with true values
@@ -512,7 +518,8 @@ samples_4d = NestedSamples(
     labels={"i0": r"$i_0$", "Omega0": r"$\Omega_0$", "e0": r"$e_0$", "n0": r"$n_0$"},
 )
 
-print(f"log Z = {samples_4d.logZ():.1f}")
+logZ_4d = samples_4d.logZ(100)
+print(f"log Z = {np.mean(logZ_4d):.1f} ± {np.std(logZ_4d):.1f}")
 
 #-
 samples_4d.plot_2d(["i0", "Omega0", "e0", "n0"])
@@ -582,17 +589,18 @@ samples_circ = NestedSamples(
     logL_birth=dead_circ.particles.loglikelihood_birth,
 )
 
-logZ_circ = float(samples_circ.logZ())
-logZ_ellip = float(samples_4d.logZ())
-log_bayes_factor = logZ_ellip - logZ_circ
+# Sample logZ for both models to get error bars
+logZ_circ_samples = np.array(samples_circ.logZ(100))
+logZ_ellip_samples = np.array(samples_4d.logZ(100))
+log_bayes_samples = logZ_ellip_samples - logZ_circ_samples
 
-print(f"log Z (circular):   {logZ_circ:.1f}")
-print(f"log Z (elliptical): {logZ_ellip:.1f}")
-print(f"log Bayes factor:   {log_bayes_factor:.1f}")
+print(f"log Z (circular):   {logZ_circ_samples.mean():.1f} ± {logZ_circ_samples.std():.1f}")
+print(f"log Z (elliptical): {logZ_ellip_samples.mean():.1f} ± {logZ_ellip_samples.std():.1f}")
+print(f"log Bayes factor:   {log_bayes_samples.mean():.1f} ± {log_bayes_samples.std():.1f}")
 
-if log_bayes_factor > 1:
+if log_bayes_samples.mean() > 1:
     print("Data prefer the elliptical model (evidence for eccentricity)")
-elif log_bayes_factor < -1:
+elif log_bayes_samples.mean() < -1:
     print("Data prefer the circular model (Occam's razor penalises unnecessary eccentricity)")
 else:
     print("Inconclusive — models are comparably supported")
