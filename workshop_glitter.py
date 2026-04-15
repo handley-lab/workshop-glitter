@@ -232,7 +232,7 @@ labels = list(results.keys())
 
 # Draw 100 samples of logZ for each model to get error bars
 nsamples = 100
-logZ_samples = np.array([results[l].logZ(nsamples) for l in labels])  # (n_models, nsamples)
+logZ_samples = np.array([np.array(results[l].logZ(nsamples)) for l in labels])  # (n_models, nsamples)
 logZ_mean = logZ_samples.mean(axis=1)
 logZ_std = logZ_samples.std(axis=1)
 logZ_mean -= logZ_mean.max()
@@ -411,8 +411,8 @@ samples_2d = NestedSamples(
     labels={"i0": r"$i_0$ (deg)", "Omega0": r"$\Omega_0$ (deg)"},
 )
 
-logZ_2d = samples_2d.logZ(100)
-print(f"log Z = {np.mean(logZ_2d):.1f} ± {np.std(logZ_2d):.1f}")
+logZ_2d = np.array(samples_2d.logZ(100))
+print(f"log Z = {logZ_2d.mean():.1f} ± {logZ_2d.std():.1f}")
 
 #-
 # Corner plot with true values
@@ -526,8 +526,8 @@ samples_4d = NestedSamples(
     labels={"i0": r"$i_0$", "Omega0": r"$\Omega_0$", "e0": r"$e_0$", "n0": r"$n_0$"},
 )
 
-logZ_4d = samples_4d.logZ(100)
-print(f"log Z = {np.mean(logZ_4d):.1f} ± {np.std(logZ_4d):.1f}")
+logZ_4d = np.array(samples_4d.logZ(100))
+print(f"log Z = {logZ_4d.mean():.1f} ± {logZ_4d.std():.1f}")
 
 #-
 samples_4d.plot_2d(["i0", "Omega0", "e0", "n0"])
