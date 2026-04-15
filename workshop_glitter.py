@@ -263,6 +263,14 @@ from jaxsgp4 import tle2sat, sgp4, Satellite
 #| We have a TLE (Two-Line Element set) identifying a Starlink satellite,
 #| and 20 noisy position measurements in the TEME frame.
 
+import os
+if not os.path.exists("observations.npz"):
+    import urllib.request
+    urllib.request.urlretrieve(
+        "https://github.com/handley-lab/workshop-glitter/raw/master/observations.npz",
+        "observations.npz"
+    )
+
 data = np.load("observations.npz", allow_pickle=True)
 times = jnp.array(data["times"])
 positions_obs = jnp.array(data["positions_obs"])
