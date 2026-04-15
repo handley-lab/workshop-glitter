@@ -163,18 +163,24 @@ def run_line_fitting(active_powers, num_live=500, rng_seed=42):
 
 samples_linear = run_line_fitting([0, 1])
 
-#| ### 1.6 Parameter estimation
+#| ### 1.6 Parameter space: the posterior
 #|
-#| The posterior tells us what we know about the parameters **after** seeing the data.
-#| This is the solution to the inverse problem — with proper error bars.
+#| The posterior $P(\theta|D)$ lives in **parameter space** — the space of
+#| model coefficients. This is what nested sampling directly gives us.
 
 samples_linear.plot_2d(['c0', 'c1'])
-plt.suptitle('$y = a + bx$');
+plt.suptitle('Parameter space: $y = a + bx$');
 
-#| ### 1.7 Predictive posterior
+#| Each point in this triangle plot is a set of parameters $(a, b)$.
+#| The contours show which combinations are consistent with the data.
+#| Notice the correlation — if the intercept $a$ is higher, the slope $b$
+#| must be lower to still fit the data.
+
+#| ### 1.7 Data space: the predictive posterior
 #|
-#| Rather than plotting the "best fit" line, we can plot the full distribution
-#| of predictions: what range of lines are consistent with the data?
+#| But we often care about predictions, not parameters. We can project the
+#| posterior into **data space** by running each posterior sample through the
+#| forward model. This is the predictive posterior $P(y|x, D)$.
 
 fig, ax = plt.subplots()
 ax.errorbar(x, y, yerr=sigma, fmt='.', color='k', capthick=0.1, markersize=0, linewidth=0.1)
@@ -186,7 +192,12 @@ for _, row in posterior.iterrows():
 
 ax.set_xlabel('$x$')
 ax.set_ylabel('$y$')
-ax.set_title('Predictive posterior: $y = a + bx$');
+ax.set_title('Data space: predictive posterior $P(y|x, D)$');
+
+#| This is sampling in action: each line is one posterior sample propagated
+#| through the forward model. The envelope of lines shows our uncertainty
+#| about the prediction — proper error bars on the model, not just the
+#| parameters.
 
 #| ### 1.8 Model comparison
 #|
