@@ -240,35 +240,31 @@ def observe_apparent(r_teme, R_teme_to_itrs, R_itrs_to_cirs, R_cirs_to_gcrs,
     """
     from coordinates import cartesian_to_altaz
 
+    _DAU = 149597870.7  # km per au
+
     # 1. TEME -> ITRS (geocentric)
     r_itrs_geo = R_teme_to_itrs @ r_teme
 
     # 2. ITRS -> CIRS (geocentric)
     r_cirs_geo = R_itrs_to_cirs @ r_itrs_geo
 
-    # 3. CIRS -> GCRS (geocentric)
-    r_gcrs_geo = R_cirs_to_gcrs @ r_cirs_geo
+    # 3. CIRS -> GCRS (geocentric), convert to au for observer-change
+    r_gcrs_geo = (R_cirs_to_gcrs @ r_cirs_geo) / _DAU  # au
 
-    # 4. GCRS(geocentric) -> ICRS
-    #    Decompose into direction + distance
+    # 4. GCRS(geocentric) -> ICRS (all in au)
     dist_geo = jnp.linalg.norm(r_gcrs_geo)
     u_gcrs_geo = r_gcrs_geo / dist_geo
     ra_gcrs = jnp.arctan2(u_gcrs_geo[1], u_gcrs_geo[0])
     dec_gcrs = jnp.arctan2(u_gcrs_geo[2], jnp.sqrt(u_gcrs_geo[0]**2 + u_gcrs_geo[1]**2))
 
-    #    Apply inverse astrometry (GCRS -> ICRS direction)
     ra_icrs, dec_icrs = aticq(ra_gcrs, dec_gcrs, v_geo, em_geo, eh_geo, bm1_geo, bpn_geo)
 
-    #    Reconstruct ICRS Cartesian with finite distance + observer offset
     u_icrs = jnp.array([jnp.cos(ra_icrs) * jnp.cos(dec_icrs),
                          jnp.sin(ra_icrs) * jnp.cos(dec_icrs),
                          jnp.sin(dec_icrs)])
-    # Convert distance from km to au for the eb offset
-    _DAU = 149597870.7  # km per au
-    r_icrs = dist_geo / _DAU * u_icrs + eb_geo
+    r_icrs = dist_geo * u_icrs + eb_geo  # au
 
-    # 5. ICRS -> GCRS(station)
-    #    Subtract station barycentric position
+    # 5. ICRS -> GCRS(station) (all in au)
     r_rel = r_icrs - eb_site
     dist_site = jnp.linalg.norm(r_rel)
     u_rel = r_rel / dist_site
@@ -276,22 +272,15 @@ def observe_apparent(r_teme, R_teme_to_itrs, R_itrs_to_cirs, R_cirs_to_gcrs,
     ra_rel = jnp.arctan2(u_rel[1], u_rel[0])
     dec_rel = jnp.arctan2(u_rel[2], jnp.sqrt(u_rel[0]**2 + u_rel[1]**2))
 
-    #    Apply forward astrometry (ICRS -> GCRS direction)
     ra_gcrs_site, dec_gcrs_site = atciqz(ra_rel, dec_rel, v_site, em_site, eh_site, bm1_site, bpn_site)
 
-    #    Reconstruct GCRS Cartesian at station
     u_gcrs_site = jnp.array([jnp.cos(ra_gcrs_site) * jnp.cos(dec_gcrs_site),
                               jnp.sin(ra_gcrs_site) * jnp.cos(dec_gcrs_site),
                               jnp.sin(dec_gcrs_site)])
-    # Convert distance back to km
-    r_gcrs_site = dist_site * _DAU * u_gcrs_site
+    r_gcrs_site = dist_site * u_gcrs_site  # au
 
-    # 6. GCRS(station) -> CIRS(station)
+    # 6-8: Rotations are scale-invariant, keep in au through to AltAz
     r_cirs_site = R_gcrs_to_cirs @ r_gcrs_site
-
-    # 7. CIRS(station) -> ITRS(station)
     r_itrs_site = R_cirs_to_itrs @ r_cirs_site
-
-    # 8. ITRS(station) -> AltAz
     r_altaz = R_itrs_to_altaz @ r_itrs_site
     return cartesian_to_altaz(r_altaz)

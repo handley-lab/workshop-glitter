@@ -604,17 +604,42 @@ else:
 
 #| ## Part 3: Extensions
 #|
-#| Now it's your turn. Here are some things to try:
+#| The structure is always the same:
+#| 1. Write a forward model $y = f(x; \theta)$ in JAX
+#| 2. Define `logprior_fn(params)` and `loglikelihood_fn(params)`
+#| 3. Draw initial `particles` from the prior
+#| 4. Run `blackjax.nss()` and visualise with `anesthetic`
 #|
-#| - **Change the noise level**: regenerate data with smaller $\sigma$.
-#|   At what noise level can you detect the eccentricity?
-#| - **Add more parameters**: try inferring $w_0$ (argument of perigee)
-#|   or $M_0$ (mean anomaly). What degeneracies appear?
-#| - **Your own forward model**: replace SGP4 with a forward model from
-#|   your own research. The structure is always the same:
-#|   1. Define `logprior_fn(params)` and `loglikelihood_fn(params)`
-#|   2. Draw initial `particles` from the prior
-#|   3. Run `blackjax.nss()` and visualise with `anesthetic`
+#| Here are some directions relevant to GNSS-R:
 #|
-#| The key insight: once you have a differentiable forward model in JAX,
-#| Bayesian inference with nested sampling is straightforward.
+#| ### Orbit determination
+#| - **Noise sensitivity**: at what noise level can you detect the eccentricity?
+#|   Try $\sigma = 1$ km, $0.1$ km. How does the Bayes factor change?
+#| - **More parameters**: add $w_0$ (argument of perigee) or $M_0$ (mean anomaly).
+#|   What degeneracies appear in the corner plot?
+#| - **Constellation fitting**: observe multiple satellites simultaneously.
+#|   `jaxsgp4.tle2sat_array` parses multiple TLEs, and `jax.vmap` vectorises
+#|   over satellites. Can you fit orbital planes for a Starlink shell?
+#|
+#| ### GNSS-R surface inference
+#| - **Soil moisture from reflected signals**: write a forward model for the
+#|   reflection coefficient as a function of soil dielectric constant and roughness.
+#|   The likelihood compares predicted vs observed signal-to-noise ratio.
+#|   Use nested sampling to infer soil parameters and compare models
+#|   (e.g. smooth vs rough surface).
+#| - **Sea surface roughness**: the delay-Doppler map depends on wind speed
+#|   and significant wave height. Define a simplified DDM forward model,
+#|   add noise, and infer ocean surface parameters.
+#|
+#| ### Ground-penetrating radar
+#| - **Layer detection**: a forward model for travel time through $N$ layers
+#|   with unknown thicknesses and permittivities. Use model comparison
+#|   (evidence) to determine the number of subsurface layers -- this is
+#|   exactly the polynomial order selection problem from Part 1.
+#|
+#| ### General recipe
+#| - If your forward model is in Python/NumPy, porting to JAX is often
+#|   just replacing `import numpy as np` with `import jax.numpy as jnp`.
+#| - If it's in Fortran/C++, an LLM can help translate it.
+#| - The bottleneck is usually getting the forward model right, not the
+#|   inference machinery.
