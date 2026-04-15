@@ -5,6 +5,8 @@
 **Speaker**: Will Handley (University of Cambridge / PolyChord Ltd)
 **Audience**: ~12 GLITTER Doctoral Candidates (GNSS-R, remote sensing, signal processing backgrounds)
 
+**Talk slides**: [[PDF](https://github.com/williamjameshandley/talks/raw/glitter_2026/will_handley_glitter_2026.pdf)] [[source](https://github.com/williamjameshandley/talks/tree/glitter_2026)]
+
 ## Structure
 
 ### Hour 1: Talk (slides)
